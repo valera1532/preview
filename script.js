@@ -1,14 +1,17 @@
 const revealNodes = document.querySelectorAll(".reveal-card, .reveal-item");
+const root = document.documentElement;
+const prefersReducedMotion = window.matchMedia(
+  "(prefers-reduced-motion: reduce)",
+);
 
 const revealObserver = new IntersectionObserver(
   (entries) => {
     entries.forEach((entry) => {
-      if (!entry.isIntersecting) {
-        return;
+      if (entry.isIntersecting) {
+        entry.target.classList.add("is-visible");
+      } else {
+        entry.target.classList.remove("is-visible");
       }
-
-      entry.target.classList.add("is-visible");
-      revealObserver.unobserve(entry.target);
     });
   },
   {
@@ -18,6 +21,27 @@ const revealObserver = new IntersectionObserver(
 );
 
 revealNodes.forEach((node) => revealObserver.observe(node));
+
+if (!prefersReducedMotion.matches) {
+  let pointerFrame = null;
+  let nextPointerX = 0;
+  let nextPointerY = 0;
+
+  window.addEventListener("pointermove", (event) => {
+    nextPointerX = event.clientX - window.innerWidth / 2;
+    nextPointerY = event.clientY - window.innerHeight / 2;
+
+    if (pointerFrame) {
+      return;
+    }
+
+    pointerFrame = window.requestAnimationFrame(() => {
+      root.style.setProperty("--pointer-x", `${nextPointerX}px`);
+      root.style.setProperty("--pointer-y", `${nextPointerY}px`);
+      pointerFrame = null;
+    });
+  });
+}
 
 const form = document.querySelector(".contact-form");
 
