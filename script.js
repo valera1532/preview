@@ -8,17 +8,17 @@ const prefersReducedMotion = window.matchMedia(
 const detectPerformanceTier = () => {
   const hardwareThreads = navigator.hardwareConcurrency || 8;
   const memory = navigator.deviceMemory || 8;
-  const viewportWidth = window.innerWidth;
+  const isCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
 
   if (prefersReducedMotion.matches) {
     return "minimal";
   }
 
-  if (hardwareThreads <= 4 || memory <= 4) {
+  if ((hardwareThreads <= 2 || memory <= 2) && isCoarsePointer) {
     return "minimal";
   }
 
-  if (hardwareThreads <= 6 || memory <= 8 || viewportWidth <= 1440) {
+  if (hardwareThreads <= 4 || memory <= 4 || (isCoarsePointer && hardwareThreads <= 6)) {
     return "reduced";
   }
 
