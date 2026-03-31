@@ -1,5 +1,6 @@
 const revealNodes = document.querySelectorAll(".reveal-card, .reveal-item");
 const root = document.documentElement;
+const backgroundScene = document.querySelector(".background-scene");
 const prefersReducedMotion = window.matchMedia(
   "(prefers-reduced-motion: reduce)",
 );
@@ -21,6 +22,232 @@ const revealObserver = new IntersectionObserver(
 );
 
 revealNodes.forEach((node) => revealObserver.observe(node));
+
+const initElectricStrings = () => {
+  if (!backgroundScene || prefersReducedMotion.matches) {
+    return;
+  }
+
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+
+  if (!context) {
+    return;
+  }
+
+  canvas.className = "electric-strings-canvas";
+  backgroundScene.prepend(canvas);
+
+  let width = 0;
+  let height = 0;
+  let rafId = null;
+  let time = 0;
+
+  const pointer = { x: null, y: null };
+  const target = { x: 0, y: 0 };
+  const lastTarget = { x: 0, y: 0 };
+
+  const distance = (x1, y1, x2, y2) => Math.hypot(x2 - x1, y2 - y1);
+
+  class Segment {
+    constructor(parent, length, angle, first) {
+      this.length = length;
+      this.angle = angle;
+      this.pos = first
+        ? { x: parent.x, y: parent.y }
+        : { x: parent.nextPos.x, y: parent.nextPos.y };
+      this.nextPos = {
+        x: this.pos.x + this.length * Math.cos(this.angle),
+        y: this.pos.y + this.length * Math.sin(this.angle),
+      };
+    }
+
+    update(targetPoint) {
+      this.angle = Math.atan2(targetPoint.y - this.pos.y, targetPoint.x - this.pos.x);
+      this.pos.x = targetPoint.x + this.length * Math.cos(this.angle - Math.PI);
+      this.pos.y = targetPoint.y + this.length * Math.sin(this.angle - Math.PI);
+      this.nextPos.x = this.pos.x + this.length * Math.cos(this.angle);
+      this.nextPos.y = this.pos.y + this.length * Math.sin(this.angle);
+    }
+
+    fallback(targetPoint) {
+      this.pos.x = targetPoint.x;
+      this.pos.y = targetPoint.y;
+      this.nextPos.x = this.pos.x + this.length * Math.cos(this.angle);
+      this.nextPos.y = this.pos.y + this.length * Math.sin(this.angle);
+    }
+
+    drawLine() {
+      context.lineTo(this.nextPos.x, this.nextPos.y);
+    }
+  }
+
+  class StringLine {
+    constructor(x, y, totalLength, segments) {
+      this.x = x;
+      this.y = y;
+      this.totalLength = totalLength;
+      this.segmentCount = segments;
+      this.seed = Math.random();
+      this.hue = 188 + Math.random() * 36;
+      this.lightness = 62 + Math.random() * 22;
+      this.width = 1.1 + Math.random() * 2.1;
+      this.segments = [new Segment(this, totalLength / segments, 0, true)];
+
+      for (let index = 1; index < segments; index += 1) {
+        this.segments.push(
+          new Segment(this.segments[index - 1], totalLength / segments, 0, false),
+        );
+      }
+    }
+
+    move(previousTarget, currentTarget) {
+      const angle = Math.atan2(currentTarget.y - this.y, currentTarget.x - this.x);
+      const delta = distance(previousTarget.x, previousTarget.y, currentTarget.x, currentTarget.y) + 4;
+      const anchor = {
+        x: currentTarget.x - 0.75 * delta * Math.cos(angle),
+        y: currentTarget.y - 0.75 * delta * Math.sin(angle),
+      };
+
+      this.segments[this.segmentCount - 1].update(anchor);
+
+      for (let index = this.segmentCount - 2; index >= 0; index -= 1) {
+        this.segments[index].update(this.segments[index + 1].pos);
+      }
+
+      if (distance(this.x, this.y, currentTarget.x, currentTarget.y) <= this.totalLength + delta) {
+        this.segments[0].fallback({ x: this.x, y: this.y });
+
+        for (let index = 1; index < this.segmentCount; index += 1) {
+          this.segments[index].fallback(this.segments[index - 1].nextPos);
+        }
+      }
+    }
+
+    draw(currentTarget) {
+      if (distance(this.x, this.y, currentTarget.x, currentTarget.y) > this.totalLength) {
+        return;
+      }
+
+      context.globalCompositeOperation = "lighter";
+      context.beginPath();
+      context.moveTo(this.x, this.y);
+
+      this.segments.forEach((segment) => segment.drawLine());
+
+      context.strokeStyle = `hsla(${this.hue}, 100%, ${this.lightness}%, 0.52)`;
+      context.lineWidth = this.width;
+      context.lineCap = "round";
+      context.lineJoin = "round";
+      context.stroke();
+      context.globalCompositeOperation = "source-over";
+    }
+
+    drawAnchor(currentTarget) {
+      const isActive = distance(this.x, this.y, currentTarget.x, currentTarget.y) <= this.totalLength;
+
+      context.beginPath();
+      context.arc(
+        this.x,
+        this.y,
+        isActive ? 1.8 + this.seed * 3.2 : 0.8 + this.seed * 1.8,
+        0,
+        Math.PI * 2,
+      );
+
+      context.fillStyle = isActive
+        ? `rgba(255, 255, 255, ${0.72 + this.seed * 0.22})`
+        : `rgba(33, 172, 188, ${0.35 + this.seed * 0.18})`;
+      context.fill();
+    }
+  }
+
+  const lines = [];
+
+  const buildLines = () => {
+    lines.length = 0;
+
+    for (let index = 0; index < 220; index += 1) {
+      lines.push(
+        new StringLine(
+          Math.random() * width,
+          Math.random() * height,
+          80 + Math.random() * 180,
+          18,
+        ),
+      );
+    }
+
+    target.x = width * 0.5;
+    target.y = height * 0.38;
+    lastTarget.x = target.x;
+    lastTarget.y = target.y;
+  };
+
+  const resizeCanvas = () => {
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
+    buildLines();
+  };
+
+  const tick = () => {
+    context.clearRect(0, 0, width, height);
+
+    const driftTarget = pointer.x == null
+      ? {
+          x: width * 0.5 + Math.cos(time * 0.8) * width * 0.12,
+          y: height * 0.34 + Math.sin(time * 1.1) * height * 0.08,
+        }
+      : pointer;
+
+    target.x += (driftTarget.x - target.x) * 0.08;
+    target.y += (driftTarget.y - target.y) * 0.08;
+
+    context.beginPath();
+    context.arc(
+      target.x,
+      target.y,
+      distance(lastTarget.x, lastTarget.y, target.x, target.y) + 4,
+      0,
+      Math.PI * 2,
+    );
+    context.fillStyle = "rgba(173, 232, 255, 0.46)";
+    context.fill();
+
+    lines.forEach((line) => line.move(lastTarget, target));
+    lines.forEach((line) => line.drawAnchor(target));
+    lines.forEach((line) => line.draw(target));
+
+    lastTarget.x = target.x;
+    lastTarget.y = target.y;
+    time += 0.008;
+    rafId = window.requestAnimationFrame(tick);
+  };
+
+  window.addEventListener("pointermove", (event) => {
+    pointer.x = event.clientX;
+    pointer.y = event.clientY;
+  });
+
+  window.addEventListener("pointerleave", () => {
+    pointer.x = null;
+    pointer.y = null;
+  });
+
+  window.addEventListener("resize", () => {
+    if (rafId) {
+      window.cancelAnimationFrame(rafId);
+    }
+
+    resizeCanvas();
+    tick();
+  });
+
+  resizeCanvas();
+  tick();
+};
+
+initElectricStrings();
 
 if (!prefersReducedMotion.matches) {
   let pointerFrame = null;
@@ -113,6 +340,11 @@ const initCircuitDiagram = () => {
 
   const nodes = document.querySelectorAll(".network-node[data-wire]");
   let activeTimeout = null;
+  let arriveTimeout = null;
+  const lineDuration = 1350;
+  const cardFillDelay = 700;
+  let currentNode = null;
+  let currentWire = null;
 
   const resetWire = (activeWire) => {
     activeWire.classList.remove("is-energized");
@@ -132,9 +364,38 @@ const initCircuitDiagram = () => {
     orb.setAttribute("r", "0");
   };
 
+  const resetNodeState = (activeNode) => {
+    activeNode.classList.remove("is-pending", "is-active");
+  };
+
+  const clearCurrentInteraction = () => {
+    if (activeTimeout) {
+      window.clearTimeout(activeTimeout);
+      activeTimeout = null;
+    }
+
+    if (arriveTimeout) {
+      window.clearTimeout(arriveTimeout);
+      arriveTimeout = null;
+    }
+
+    activeAnimationToken += 1;
+    resetOrb();
+
+    if (currentWire) {
+      resetWire(currentWire);
+      currentWire = null;
+    }
+
+    if (currentNode) {
+      resetNodeState(currentNode);
+      currentNode = null;
+    }
+  };
+
   const animateOrb = (wireEntry, token) => {
     const startTime = performance.now();
-    const duration = 1350;
+    const duration = lineDuration;
 
     const step = (now) => {
       if (token !== activeAnimationToken) {
@@ -173,22 +434,10 @@ const initCircuitDiagram = () => {
     }
 
     const wire = wireEntry.overlay;
-
-    if (activeTimeout) {
-      window.clearTimeout(activeTimeout);
-    }
-
-    activeAnimationToken += 1;
-
-    document
-      .querySelectorAll(".network-node.is-active")
-      .forEach((activeNode) => activeNode.classList.remove("is-active"));
-
-    svgDocument
-      .querySelectorAll(".wire-line-overlay.is-energized")
-      .forEach((activeWire) => resetWire(activeWire));
-
-    node.classList.add("is-active");
+    clearCurrentInteraction();
+    currentNode = node;
+    currentWire = wire;
+    node.classList.add("is-pending");
     resetWire(wire);
     resetOrb();
     void wire.getBoundingClientRect();
@@ -199,11 +448,25 @@ const initCircuitDiagram = () => {
       animateOrb(wireEntry, activeAnimationToken);
     });
 
+    arriveTimeout = window.setTimeout(() => {
+      node.classList.add("is-active");
+    }, cardFillDelay);
+
     activeTimeout = window.setTimeout(() => {
+      activeTimeout = null;
       resetWire(wire);
       resetOrb();
-      node.classList.remove("is-active");
-    }, 1500);
+      currentWire = null;
+    }, lineDuration + 350);
+  };
+
+  const releaseNode = (node) => {
+    if (node !== currentNode) {
+      resetNodeState(node);
+      return;
+    }
+
+    clearCurrentInteraction();
   };
 
   nodes.forEach((node) => {
@@ -211,6 +474,8 @@ const initCircuitDiagram = () => {
 
     node.addEventListener("mouseenter", () => energizeWire(wireId, node));
     node.addEventListener("focus", () => energizeWire(wireId, node));
+    node.addEventListener("mouseleave", () => releaseNode(node));
+    node.addEventListener("blur", () => releaseNode(node));
   });
 };
 

@@ -141,6 +141,15 @@ body::before {
   overflow: hidden;
 }
 
+.electric-strings-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.78;
+  mix-blend-mode: screen;
+}
+
 .aurora,
 .grid-glow,
 .noise-layer {
@@ -435,6 +444,7 @@ textarea {
 .contact-form,
 .section-heading {
   position: relative;
+  isolation: isolate;
   overflow: hidden;
   border: 1px solid var(--line);
   background: linear-gradient(
@@ -446,8 +456,89 @@ textarea {
   transition:
     transform 0.6s var(--ease),
     box-shadow 0.6s var(--ease),
-    border-color 0.4s ease,
-    background 0.4s ease;
+    border-color 0.4s ease;
+}
+
+.testimonial-card,
+.case-block {
+  isolation: isolate;
+  transition:
+    transform 0.6s var(--ease),
+    box-shadow 0.6s var(--ease),
+    border-color 0.4s ease;
+}
+
+.hero-copy::before,
+.hero-visual::before,
+.section-intro::before,
+.info-card::before,
+.service-card::before,
+.project-card::before,
+.metrics-copy::before,
+.metric-card::before,
+.contact-block::before,
+.contact-form::before,
+.section-heading::before,
+.testimonial-card::before,
+.case-block::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(155, 239, 255, 0.18),
+    rgba(79, 141, 245, 0.12) 44%,
+    rgba(85, 214, 190, 0.08) 100%
+  );
+  opacity: 0.92;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.hero-copy::after,
+.hero-visual::after,
+.section-intro::after,
+.info-card::after,
+.service-card::after,
+.project-card::after,
+.metrics-copy::after,
+.metric-card::after,
+.contact-block::after,
+.contact-form::after,
+.section-heading::after,
+.testimonial-card::after,
+.case-block::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  border: 1px solid rgba(155, 239, 255, 0.46);
+  opacity: 0;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition:
+    transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.24s ease;
+}
+
+.hero-copy > *,
+.hero-visual > *,
+.section-intro > *,
+.info-card > *,
+.service-card > *,
+.project-card > *,
+.metrics-copy > *,
+.metric-card > *,
+.contact-block > *,
+.contact-form > *,
+.section-heading > *,
+.testimonial-card > *,
+.case-block > * {
+  position: relative;
+  z-index: 1;
 }
 
 .hero-copy,
@@ -809,7 +900,9 @@ textarea {
 .project-card:hover,
 .metric-card:hover,
 .contact-form:hover,
-.section-heading:hover {
+.section-heading:hover,
+.testimonial-card:hover,
+.case-block:hover {
   transform: translateY(-6px) scale(1.012);
   border-color: rgba(138, 240, 198, 0.22);
   box-shadow: 0 36px 90px rgba(0, 0, 0, 0.42);
@@ -822,6 +915,65 @@ textarea {
 .contact-block:hover {
   transform: translateY(-4px) scale(1.006);
   box-shadow: 0 36px 90px rgba(0, 0, 0, 0.4);
+}
+
+.hero-copy:hover::before,
+.hero-visual:hover::before,
+.section-intro:hover::before,
+.info-card:hover::before,
+.service-card:hover::before,
+.project-card:hover::before,
+.metrics-copy:hover::before,
+.metric-card:hover::before,
+.contact-block:hover::before,
+.contact-form:hover::before,
+.section-heading:hover::before,
+.testimonial-card:hover::before,
+.case-block:hover::before,
+.hero-copy:focus-within::before,
+.hero-visual:focus-within::before,
+.section-intro:focus-within::before,
+.info-card:focus-within::before,
+.service-card:focus-within::before,
+.project-card:focus-within::before,
+.metrics-copy:focus-within::before,
+.metric-card:focus-within::before,
+.contact-block:focus-within::before,
+.contact-form:focus-within::before,
+.section-heading:focus-within::before,
+.testimonial-card:focus-within::before,
+.case-block:focus-within::before {
+  transform: scaleX(1);
+}
+
+.hero-copy:hover::after,
+.hero-visual:hover::after,
+.section-intro:hover::after,
+.info-card:hover::after,
+.service-card:hover::after,
+.project-card:hover::after,
+.metrics-copy:hover::after,
+.metric-card:hover::after,
+.contact-block:hover::after,
+.contact-form:hover::after,
+.section-heading:hover::after,
+.testimonial-card:hover::after,
+.case-block:hover::after,
+.hero-copy:focus-within::after,
+.hero-visual:focus-within::after,
+.section-intro:focus-within::after,
+.info-card:focus-within::after,
+.service-card:focus-within::after,
+.project-card:focus-within::after,
+.metrics-copy:focus-within::after,
+.metric-card:focus-within::after,
+.contact-block:focus-within::after,
+.contact-form:focus-within::after,
+.section-heading:focus-within::after,
+.testimonial-card:focus-within::after,
+.case-block:focus-within::after {
+  opacity: 1;
+  transform: scaleX(1);
 }
 
 .project-large {
@@ -1126,8 +1278,7 @@ textarea {
   transition:
     transform 0.35s var(--ease),
     border-color 0.3s ease,
-    box-shadow 0.3s ease,
-    background 0.3s ease;
+    box-shadow 0.3s ease;
 }
 
 .network-node::before {
@@ -1135,9 +1286,25 @@ textarea {
   position: absolute;
   inset: 1px;
   border-radius: inherit;
-  background: linear-gradient(135deg, rgba(155, 239, 255, 0.12), transparent 56%);
+  background: linear-gradient(135deg, rgba(155, 239, 255, 0.22), rgba(79, 141, 245, 0.14) 58%, rgba(79, 141, 245, 0.04));
+  opacity: 0.9;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.network-node::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid rgba(155, 239, 255, 0.58);
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition:
+    transform 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.22s ease;
 }
 
 .network-node > * {
@@ -1159,20 +1326,25 @@ textarea {
 
 .network-node:hover,
 .network-node:focus-visible,
+.network-node.is-pending,
 .network-node.is-active {
   transform: translateY(-4px) scale(1.02);
+}
+
+.network-node.is-active {
   border-color: rgba(155, 239, 255, 0.5);
   box-shadow:
     0 28px 54px rgba(0, 0, 0, 0.34),
     0 0 24px rgba(79, 141, 245, 0.18);
-  background:
-    linear-gradient(180deg, rgba(21, 37, 60, 0.98), rgba(10, 20, 35, 0.95));
 }
 
-.network-node:hover::before,
-.network-node:focus-visible::before,
 .network-node.is-active::before {
+  transform: scaleX(1);
+}
+
+.network-node.is-active::after {
   opacity: 1;
+  transform: scaleX(1);
 }
 
 .network-node:focus-visible {
@@ -1193,6 +1365,7 @@ textarea {
 
 .node-top-center:hover,
 .node-top-center:focus-visible,
+.node-top-center.is-pending,
 .node-top-center.is-active {
   transform: translateX(-50%) translateY(-4px) scale(1.02);
 }

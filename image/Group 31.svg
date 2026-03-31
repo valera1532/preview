@@ -1,13 +1,27 @@
 <svg width="1978" height="1547" viewBox="0 0 1978 1547" fill="none" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <linearGradient id="wire-gradient" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#46B6FF"/>
+    <stop offset="45%" stop-color="#0784DF"/>
+    <stop offset="100%" stop-color="#72E7F8"/>
+  </linearGradient>
+
+  <linearGradient id="wire-active-gradient" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#FFFFFF"/>
+    <stop offset="45%" stop-color="#BDF6FF"/>
+    <stop offset="100%" stop-color="#67DCFF"/>
+  </linearGradient>
+</defs>
 <style>
   .wire-line {
+    stroke: url(#wire-gradient);
     stroke-linecap: round;
     stroke-linejoin: round;
     vector-effect: non-scaling-stroke;
   }
 
   .wire-line-overlay {
-    stroke: #9BEFFF;
+    stroke: url(#wire-active-gradient);
     opacity: 0;
     pointer-events: none;
     filter: drop-shadow(0 0 8px rgba(123, 233, 255, 0.95)) drop-shadow(0 0 24px rgba(79, 141, 245, 0.78));
@@ -18,7 +32,7 @@
   }
 
   .wire-line-overlay.is-energized {
-    stroke: #9BEFFF;
+    stroke: url(#wire-active-gradient);
     opacity: 1;
     stroke-dashoffset: 0;
   }
