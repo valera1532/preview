@@ -268,6 +268,49 @@ body::before {
   mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.82));
 }
 
+html[data-performance="reduced"] .aurora,
+html[data-performance="reduced"] .grid-glow {
+  animation: none !important;
+}
+
+html[data-performance="reduced"] .aurora {
+  opacity: 0.16;
+  filter: blur(72px);
+}
+
+html[data-performance="reduced"] .grid-glow {
+  opacity: 0.1;
+}
+
+html[data-performance="reduced"] .noise-layer {
+  opacity: 0.015;
+}
+
+html[data-performance="reduced"] .site-header,
+html[data-performance="reduced"] .visual-content,
+html[data-performance="reduced"] .visual-float,
+html[data-performance="reduced"] .contact-form {
+  backdrop-filter: none;
+}
+
+html[data-performance="minimal"] .background-scene,
+html[data-performance="minimal"] .page-shell {
+  display: none;
+}
+
+html[data-performance="minimal"] .site-header,
+html[data-performance="minimal"] .visual-content,
+html[data-performance="minimal"] .visual-float,
+html[data-performance="minimal"] .contact-form {
+  backdrop-filter: none;
+}
+
+html[data-performance="minimal"] .floating-card,
+html[data-performance="minimal"] .float-top,
+html[data-performance="minimal"] .float-bottom {
+  animation: none;
+}
+
 @keyframes auroraFloatOne {
   0%,
   100% {
@@ -1233,12 +1276,12 @@ textarea {
 
 .impulse-stage {
   position: relative;
-  min-height: 1040px;
+  aspect-ratio: 1978 / 1547;
 }
 
 .network-diagram {
   position: absolute;
-  inset: 40px 100px;
+  inset: 6% 7%;
   display: grid;
   place-items: center;
   pointer-events: none;
@@ -1262,15 +1305,18 @@ textarea {
 .network-node {
   position: absolute;
   z-index: 2;
-  width: 230px;
-  min-height: 138px;
-  padding: 22px 20px;
+  width: 300px;
+  min-height: 164px;
+  padding: 26px 24px;
   display: grid;
-  gap: 8px;
+  gap: 10px;
   border: 1px solid rgba(138, 199, 255, 0.16);
   border-radius: 22px;
-  background:
-    linear-gradient(180deg, rgba(16, 28, 46, 0.94), rgba(9, 17, 30, 0.92));
+  background: linear-gradient(
+    180deg,
+    rgba(16, 28, 46, 0.94),
+    rgba(9, 17, 30, 0.92)
+  );
   color: var(--text);
   text-align: left;
   box-shadow: 0 24px 42px rgba(0, 0, 0, 0.26);
@@ -1286,7 +1332,12 @@ textarea {
   position: absolute;
   inset: 1px;
   border-radius: inherit;
-  background: linear-gradient(135deg, rgba(155, 239, 255, 0.22), rgba(79, 141, 245, 0.14) 58%, rgba(79, 141, 245, 0.04));
+  background: linear-gradient(
+    135deg,
+    rgba(155, 239, 255, 0.22),
+    rgba(79, 141, 245, 0.14) 58%,
+    rgba(79, 141, 245, 0.04)
+  );
   opacity: 0.9;
   transform: scaleX(0);
   transform-origin: left center;
@@ -1314,14 +1365,19 @@ textarea {
 
 .network-node strong {
   font-family: "Space Grotesk", sans-serif;
-  font-size: 26px;
+  font-size: 30px;
   letter-spacing: -0.04em;
 }
 
 .network-node span {
   color: var(--muted);
   line-height: 1.45;
-  font-size: 15px;
+  font-size: 17px;
+}
+
+.node-featured {
+  width: 360px;
+  min-height: 184px;
 }
 
 .network-node:hover,
@@ -1352,13 +1408,8 @@ textarea {
   outline-offset: 3px;
 }
 
-.node-top-left {
-  top: 3%;
-  left: 6%;
-}
-
 .node-top-center {
-  top: 0;
+  top: 1%;
   left: 50%;
   transform: translateX(-50%);
 }
@@ -1370,29 +1421,24 @@ textarea {
   transform: translateX(-50%) translateY(-4px) scale(1.02);
 }
 
-.node-top-right {
-  top: 3%;
-  right: 6%;
+.node-left-upper {
+  top: 24%;
+  left: 1%;
 }
 
-.node-left-mid {
-  top: 34%;
-  left: 0;
+.node-left-lower {
+  top: 66%;
+  left: 3%;
 }
 
-.node-left-bottom {
-  top: 62%;
-  left: 0;
+.node-right-upper {
+  top: 24%;
+  right: 1%;
 }
 
-.node-right-mid {
-  top: 34%;
-  right: 0;
-}
-
-.node-right-bottom {
-  top: 62%;
-  right: 0;
+.node-right-lower {
+  top: 66%;
+  right: 3%;
 }
 
 .metrics-grid {

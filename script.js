@@ -5,6 +5,30 @@ const prefersReducedMotion = window.matchMedia(
   "(prefers-reduced-motion: reduce)",
 );
 
+const detectPerformanceTier = () => {
+  const hardwareThreads = navigator.hardwareConcurrency || 8;
+  const memory = navigator.deviceMemory || 8;
+  const viewportWidth = window.innerWidth;
+
+  if (prefersReducedMotion.matches) {
+    return "minimal";
+  }
+
+  if (hardwareThreads <= 4 || memory <= 4) {
+    return "minimal";
+  }
+
+  if (hardwareThreads <= 6 || memory <= 8 || viewportWidth <= 1440) {
+    return "reduced";
+  }
+
+  return "full";
+};
+
+const performanceTier = detectPerformanceTier();
+
+root.dataset.performance = performanceTier;
+
 const revealObserver = new IntersectionObserver(
   (entries) => {
     entries.forEach((entry) => {
@@ -24,7 +48,7 @@ const revealObserver = new IntersectionObserver(
 revealNodes.forEach((node) => revealObserver.observe(node));
 
 const initElectricStrings = () => {
-  if (!backgroundScene || prefersReducedMotion.matches) {
+  if (!backgroundScene || performanceTier !== "full") {
     return;
   }
 
@@ -249,7 +273,7 @@ const initElectricStrings = () => {
 
 initElectricStrings();
 
-if (!prefersReducedMotion.matches) {
+if (performanceTier === "full") {
   let pointerFrame = null;
   let nextPointerX = 0;
   let nextPointerY = 0;
@@ -316,13 +340,18 @@ const initCircuitDiagram = () => {
   circuitDiagramObject.dataset.ready = "true";
 
   const wires = new Map();
-  const orb = svgDocument.createElementNS("http://www.w3.org/2000/svg", "circle");
+  const orbEnabled = performanceTier === "full";
+  const orb = orbEnabled
+    ? svgDocument.createElementNS("http://www.w3.org/2000/svg", "circle")
+    : null;
   let activeAnimationFrame = null;
   let activeAnimationToken = 0;
 
-  orb.classList.add("wire-orb");
-  orb.setAttribute("r", "0");
-  svg.appendChild(orb);
+  if (orb) {
+    orb.classList.add("wire-orb");
+    orb.setAttribute("r", "0");
+    svg.appendChild(orb);
+  }
 
   svgDocument.querySelectorAll(".wire-line").forEach((wire) => {
     const length = Math.ceil(wire.getTotalLength());
@@ -338,13 +367,13 @@ const initCircuitDiagram = () => {
     wires.set(wire.id, { base: wire, overlay, length });
   });
 
-  const nodes = document.querySelectorAll(".network-node[data-wire]");
+  const nodes = document.querySelectorAll(".network-node[data-wires]");
   let activeTimeout = null;
   let arriveTimeout = null;
   const lineDuration = 1350;
   const cardFillDelay = 700;
   let currentNode = null;
-  let currentWire = null;
+  let currentWires = [];
 
   const resetWire = (activeWire) => {
     activeWire.classList.remove("is-energized");
@@ -355,6 +384,10 @@ const initCircuitDiagram = () => {
   };
 
   const resetOrb = () => {
+    if (!orbEnabled || !orb) {
+      return;
+    }
+
     if (activeAnimationFrame) {
       window.cancelAnimationFrame(activeAnimationFrame);
       activeAnimationFrame = null;
@@ -382,9 +415,9 @@ const initCircuitDiagram = () => {
     activeAnimationToken += 1;
     resetOrb();
 
-    if (currentWire) {
-      resetWire(currentWire);
-      currentWire = null;
+    if (currentWires.length) {
+      currentWires.forEach((wire) => resetWire(wire));
+      currentWires = [];
     }
 
     if (currentNode) {
@@ -394,6 +427,10 @@ const initCircuitDiagram = () => {
   };
 
   const animateOrb = (wireEntry, token) => {
+    if (!orbEnabled || !orb) {
+      return;
+    }
+
     const startTime = performance.now();
     const duration = lineDuration;
 
@@ -426,26 +463,35 @@ const initCircuitDiagram = () => {
     activeAnimationFrame = window.requestAnimationFrame(step);
   };
 
-  const energizeWire = (wireId, node) => {
-    const wireEntry = wires.get(wireId);
+  const energizeWire = (wireIds, node) => {
+    const wireEntries = wireIds
+      .map((wireId) => wires.get(wireId))
+      .filter(Boolean);
 
-    if (!wireEntry) {
+    if (!wireEntries.length) {
       return;
     }
 
-    const wire = wireEntry.overlay;
+    const activeWireEntry = wireEntries[0];
     clearCurrentInteraction();
     currentNode = node;
-    currentWire = wire;
+    currentWires = wireEntries.map((entry) => entry.overlay);
     node.classList.add("is-pending");
-    resetWire(wire);
+    currentWires.forEach((wire) => resetWire(wire));
     resetOrb();
-    void wire.getBoundingClientRect();
-    wire.classList.add("is-energized");
+    currentWires.forEach((wire) => {
+      void wire.getBoundingClientRect();
+      wire.classList.add("is-energized");
+    });
 
     window.requestAnimationFrame(() => {
-      wire.style.strokeDashoffset = "0";
-      animateOrb(wireEntry, activeAnimationToken);
+      currentWires.forEach((wire) => {
+        wire.style.strokeDashoffset = "0";
+      });
+
+      if (orbEnabled) {
+        animateOrb(activeWireEntry, activeAnimationToken);
+      }
     });
 
     arriveTimeout = window.setTimeout(() => {
@@ -454,9 +500,9 @@ const initCircuitDiagram = () => {
 
     activeTimeout = window.setTimeout(() => {
       activeTimeout = null;
-      resetWire(wire);
+      currentWires.forEach((wire) => resetWire(wire));
       resetOrb();
-      currentWire = null;
+      currentWires = [];
     }, lineDuration + 350);
   };
 
@@ -470,10 +516,13 @@ const initCircuitDiagram = () => {
   };
 
   nodes.forEach((node) => {
-    const wireId = node.dataset.wire;
+    const wireIds = (node.dataset.wires || "")
+      .split(",")
+      .map((wireId) => wireId.trim())
+      .filter(Boolean);
 
-    node.addEventListener("mouseenter", () => energizeWire(wireId, node));
-    node.addEventListener("focus", () => energizeWire(wireId, node));
+    node.addEventListener("mouseenter", () => energizeWire(wireIds, node));
+    node.addEventListener("focus", () => energizeWire(wireIds, node));
     node.addEventListener("mouseleave", () => releaseNode(node));
     node.addEventListener("blur", () => releaseNode(node));
   });
