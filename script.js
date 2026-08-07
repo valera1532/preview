@@ -9,8 +9,13 @@ const detectPerformanceTier = () => {
   const hardwareThreads = navigator.hardwareConcurrency || 8;
   const memory = navigator.deviceMemory || 8;
   const isCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
+  const isPhoneViewport = window.innerWidth <= 820;
 
   if (prefersReducedMotion.matches) {
+    return "minimal";
+  }
+
+  if (isCoarsePointer && isPhoneViewport) {
     return "minimal";
   }
 
@@ -18,7 +23,11 @@ const detectPerformanceTier = () => {
     return "minimal";
   }
 
-  if (hardwareThreads <= 4 || memory <= 4 || (isCoarsePointer && hardwareThreads <= 6)) {
+  if (
+    hardwareThreads <= 3 ||
+    memory <= 3 ||
+    (isCoarsePointer && hardwareThreads <= 4)
+  ) {
     return "reduced";
   }
 
@@ -87,7 +96,10 @@ const initElectricStrings = () => {
     }
 
     update(targetPoint) {
-      this.angle = Math.atan2(targetPoint.y - this.pos.y, targetPoint.x - this.pos.x);
+      this.angle = Math.atan2(
+        targetPoint.y - this.pos.y,
+        targetPoint.x - this.pos.x,
+      );
       this.pos.x = targetPoint.x + this.length * Math.cos(this.angle - Math.PI);
       this.pos.y = targetPoint.y + this.length * Math.sin(this.angle - Math.PI);
       this.nextPos.x = this.pos.x + this.length * Math.cos(this.angle);
@@ -120,14 +132,28 @@ const initElectricStrings = () => {
 
       for (let index = 1; index < segments; index += 1) {
         this.segments.push(
-          new Segment(this.segments[index - 1], totalLength / segments, 0, false),
+          new Segment(
+            this.segments[index - 1],
+            totalLength / segments,
+            0,
+            false,
+          ),
         );
       }
     }
 
     move(previousTarget, currentTarget) {
-      const angle = Math.atan2(currentTarget.y - this.y, currentTarget.x - this.x);
-      const delta = distance(previousTarget.x, previousTarget.y, currentTarget.x, currentTarget.y) + 4;
+      const angle = Math.atan2(
+        currentTarget.y - this.y,
+        currentTarget.x - this.x,
+      );
+      const delta =
+        distance(
+          previousTarget.x,
+          previousTarget.y,
+          currentTarget.x,
+          currentTarget.y,
+        ) + 4;
       const anchor = {
         x: currentTarget.x - 0.75 * delta * Math.cos(angle),
         y: currentTarget.y - 0.75 * delta * Math.sin(angle),
@@ -139,7 +165,10 @@ const initElectricStrings = () => {
         this.segments[index].update(this.segments[index + 1].pos);
       }
 
-      if (distance(this.x, this.y, currentTarget.x, currentTarget.y) <= this.totalLength + delta) {
+      if (
+        distance(this.x, this.y, currentTarget.x, currentTarget.y) <=
+        this.totalLength + delta
+      ) {
         this.segments[0].fallback({ x: this.x, y: this.y });
 
         for (let index = 1; index < this.segmentCount; index += 1) {
@@ -149,7 +178,10 @@ const initElectricStrings = () => {
     }
 
     draw(currentTarget) {
-      if (distance(this.x, this.y, currentTarget.x, currentTarget.y) > this.totalLength) {
+      if (
+        distance(this.x, this.y, currentTarget.x, currentTarget.y) >
+        this.totalLength
+      ) {
         return;
       }
 
@@ -168,7 +200,9 @@ const initElectricStrings = () => {
     }
 
     drawAnchor(currentTarget) {
-      const isActive = distance(this.x, this.y, currentTarget.x, currentTarget.y) <= this.totalLength;
+      const isActive =
+        distance(this.x, this.y, currentTarget.x, currentTarget.y) <=
+        this.totalLength;
 
       context.beginPath();
       context.arc(
@@ -217,12 +251,13 @@ const initElectricStrings = () => {
   const tick = () => {
     context.clearRect(0, 0, width, height);
 
-    const driftTarget = pointer.x == null
-      ? {
-          x: width * 0.5 + Math.cos(time * 0.8) * width * 0.12,
-          y: height * 0.34 + Math.sin(time * 1.1) * height * 0.08,
-        }
-      : pointer;
+    const driftTarget =
+      pointer.x == null
+        ? {
+            x: width * 0.5 + Math.cos(time * 0.8) * width * 0.12,
+            y: height * 0.34 + Math.sin(time * 1.1) * height * 0.08,
+          }
+        : pointer;
 
     target.x += (driftTarget.x - target.x) * 0.08;
     target.y += (driftTarget.y - target.y) * 0.08;
@@ -316,8 +351,26 @@ if (form) {
 
 const circuitDiagramObject = document.querySelector("[data-circuit-diagram]");
 
+if (circuitDiagramObject?.dataset.src) {
+  const svgVersion = Date.now();
+  const svgUrl = `${circuitDiagramObject.dataset.src}?v=${svgVersion}`;
+  const fallback = circuitDiagramObject.querySelector(
+    ".network-diagram-fallback",
+  );
+
+  circuitDiagramObject.data = svgUrl;
+
+  if (fallback) {
+    fallback.src = svgUrl;
+  }
+}
+
 const initCircuitDiagram = () => {
   if (!circuitDiagramObject) {
+    return;
+  }
+
+  if (window.innerWidth <= 820 || window.matchMedia("(pointer: coarse)").matches) {
     return;
   }
 
@@ -500,19 +553,14 @@ const initCircuitDiagram = () => {
 
     activeTimeout = window.setTimeout(() => {
       activeTimeout = null;
-      currentWires.forEach((wire) => resetWire(wire));
       resetOrb();
-      currentWires = [];
     }, lineDuration + 350);
   };
 
   const releaseNode = (node) => {
     if (node !== currentNode) {
       resetNodeState(node);
-      return;
     }
-
-    clearCurrentInteraction();
   };
 
   nodes.forEach((node) => {
@@ -523,8 +571,6 @@ const initCircuitDiagram = () => {
 
     node.addEventListener("mouseenter", () => energizeWire(wireIds, node));
     node.addEventListener("focus", () => energizeWire(wireIds, node));
-    node.addEventListener("mouseleave", () => releaseNode(node));
-    node.addEventListener("blur", () => releaseNode(node));
   });
 };
 
